@@ -4,36 +4,173 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TayDot Player</title>
-    <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1a1a1a">
+    <style>
+        /* Previous styles remain mostly the same, here are the key changes */
+
+        .playlist-item img {
+            width: 40px;
+            height: 40px;
+            border-radius: 5px;
+            margin-right: 15px;
+        }
+
+        .back-btn {
+            font-size: 32px;
+            top: 30px;
+            left: 30px;
+            padding: 10px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 50%;
+        }
+
+        .player-content {
+            width: 100%;
+            height: 100%;
+            max-width: none;
+            border-radius: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        @media (orientation: landscape) {
+            .player-content {
+                flex-direction: row;
+                align-items: center;
+            }
+            .album-art {
+                margin-right: 30px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>TayDot Player</h1>
-        </div>
-        <div class="playlist">
-            <div id="playlist-items"></div>
-        </div>
-    </div>
+    <!-- Previous HTML structure remains the same -->
 
-    <div class="player-container" id="player-container">
-        <div class="back-btn" id="back-btn">
-            <i class="fas fa-arrow-left"></i>
-        </div>
-        <div class="player-content">
-            <div class="album-art">
-                <img src="https://picsum.photos/200" alt="Album Art" id="cover">
-            </div>
-            <div class="controls">
-                <button id="prev"><i class="fas fa-step-backward"></i></button>
-                <button id="play"><i class="fas fa-play"></i></button>
-                <button id="next"><i class="fas fa-step-forward"></i></button>
-            </div>
-        </div>
-    </div>
+    <script>
+        // Add these variables at the top
+        let touchStartX = 0;
+        let touchEndX = 0;
+        const SWIPE_THRESHOLD = 50;
 
-    <script src="https://unpkg.com/swiped-events"></script>
-    <script src="app.js"></script>
+        // Add these event listeners after existing ones
+        document.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        document.addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+
+        window.addEventListener('deviceorientation', handleDeviceOrientation);
+        window.addEventListener('orientationchange', handleOrientationChange);
+
+        // Add these functions
+        function handleSwipe() {
+            if (Math.abs(touchEndX - touchStartX) < SWIPE_THRESHOLD) return;
+            if (touchEndX < touchStartX) changeSong(1);
+            else changeSong(-1);
+        }
+
+        function handleDeviceOrientation(e) {
+            const albumArt = document.querySelector('.album-art');
+            const beta = e.beta * 0.1;  // X-axis tilt
+            const gamma = e.gamma * 0.1; // Y-axis tilt
+            albumArt.style.transform = `rotateZ(${beta}deg) rotateX(${gamma}deg)`;
+        }
+
+        function handleOrientationChange() {
+            const playerContent = document.querySelector('.player-content');
+            if (window.orientation === 90 || window.orientation === -90) {
+                playerContent.classList.add('landscape');
+            } else {
+                playerContent.classList.remove('landscape');
+            }
+        }
+
+        // Service Worker for offline support
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').then(() => {
+                console.log('Service Worker registered');
+            });
+        }
+
+        // Background audio playback
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.setActionHandler('play', () => audio.play());
+            navigator.mediaSession.setActionHandler('pause', () => audio.pause());
+            navigator.mediaSession.setActionHandler('previoustrack', () => changeSong(-1));
+            navigator.mediaSession.setActionHandler('nexttrack', () => changeSong(1));
+        }
+
+        // Local storage for offline files
+        function savePlaylist() {
+            localStorage.setItem('playlist', JSON.stringify(songs));
+        }
+
+        function loadPlaylist() {
+            const saved = localStorage.getItem('playlist');
+            if (saved) songs = JSON.parse(saved);
+        }
+
+        // Update initPlaylist to use loaded data
+        function initPlaylist() {
+            loadPlaylist();
+            // ... rest of existing init code
+        }
+
+        // Update file input handler to save files
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            // ... existing code ...
+            savePlaylist();
+        });
+
+        // Add metadata for background playback
+        function updateMediaSession() {
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: songs[currentSongIndex].title,
+                    artist: songs[currentSongIndex].artist,
+                    artwork: [{ src: songs[currentSongIndex].cover, sizes: '300x300' }]
+                });
+            }
+        }
+
+        // Call this in loadSong()
+        function loadSong(index) {
+            // ... existing code ...
+            updateMediaSession();
+        }
+    </script>
+
+    <!-- Service Worker file (sw.js) -->
+    <script>
+        // Create this as a separate sw.js file
+        const CACHE_NAME = 'taydot-v1';
+        const ASSETS = [
+            '/',
+            '/index.html',
+            '/styles.css',
+            '/app.js',
+            // Add other necessary assets
+        ];
+
+        self.addEventListener('install', (e) => {
+            e.waitUntil(
+                caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+            );
+        });
+
+        self.addEventListener('fetch', (e) => {
+            e.respondWith(
+                caches.match(e.request).then((response) => response || fetch(e.request))
+            );
+        });
+    </script>
 </body>
 </html>
