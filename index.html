@@ -2,174 +2,276 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TayDot Player</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#1a1a1a">
+    <title>TayDot Player</title>
     <style>
-        /* Previous styles remain mostly the same, here are the key changes */
+        :root {
+            --primary: #ff4757;
+            --secondary: #2f3542;
+            --text: #f1f2f6;
+        }
 
-        .playlist-item img {
-            width: 40px;
-            height: 40px;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background: var(--secondary);
+            color: var(--text);
+            overflow-x: hidden;
+        }
+
+        .container {
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .playlist-container {
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .player-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: var(--secondary);
+            transform: translateY(100%);
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            display: none;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .player-container.active {
+            transform: translateY(0);
+            display: flex;
+        }
+
+        .song-item {
+            padding: 15px;
+            margin: 10px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.3s, background 0.3s;
+        }
+
+        .song-item:active {
+            transform: scale(0.98);
+        }
+
+        .controls {
+            margin-top: auto;
+            text-align: center;
+        }
+
+        .progress-container {
+            height: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 20px 0;
             border-radius: 5px;
-            margin-right: 15px;
+        }
+
+        .progress {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        button {
+            background: var(--primary);
+            border: none;
+            padding: 15px;
+            border-radius: 50%;
+            margin: 0 10px;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        button:active {
+            transform: scale(0.9);
         }
 
         .back-btn {
-            font-size: 32px;
-            top: 30px;
-            left: 30px;
-            padding: 10px;
-            background: rgba(0,0,0,0.5);
-            border-radius: 50%;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 1.5em;
+            padding: 15px;
+            z-index: 100;
         }
 
-        .player-content {
-            width: 100%;
-            height: 100%;
-            max-width: none;
-            border-radius: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
+        .artwork {
+            width: 80vw;
+            height: 80vw;
+            max-width: 300px;
+            max-height: 300px;
+            margin: 20px auto;
+            border-radius: 15px;
+            background: #333;
+            overflow: hidden;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
         }
 
         @media (orientation: landscape) {
-            .player-content {
-                flex-direction: row;
-                align-items: center;
+            .player-container {
+                padding: 40px;
             }
-            .album-art {
-                margin-right: 30px;
+            .artwork {
+                width: 50vh;
+                height: 50vh;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Previous HTML structure remains the same -->
+    <div class="container">
+        <div class="playlist-container">
+            <h1>TayDot Player</h1>
+            <input type="file" id="fileInput" webkitdirectory directory multiple hidden>
+            <button onclick="document.getElementById('fileInput').click()">Load Music</button>
+            <div id="playlist"></div>
+        </div>
+        <div class="player-container">
+            <button class="back-btn" onclick="togglePlayer()">←</button>
+            <div class="artwork"></div>
+            <h2 id="songTitle"></h2>
+            <div class="progress-container">
+                <div class="progress"></div>
+            </div>
+            <div class="controls">
+                <button onclick="skip(-10)">↻</button>
+                <button onclick="togglePlay()">⏯</button>
+                <button onclick="skip(10)">↺</button>
+            </div>
+        </div>
+    </div>
 
     <script>
-        // Add these variables at the top
+        let currentSongIndex = 0;
+        let songs = [];
+        const audio = new Audio();
+        let isPlaying = false;
         let touchStartX = 0;
-        let touchEndX = 0;
-        const SWIPE_THRESHOLD = 50;
+        let touchStartY = 0;
 
-        // Add these event listeners after existing ones
+        // File handling
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            songs = Array.from(e.target.files).filter(file => file.type.startsWith('audio/'));
+            renderPlaylist();
+        });
+
+        function renderPlaylist() {
+            const playlist = document.getElementById('playlist');
+            playlist.innerHTML = songs.map((song, index) => `
+                <div class="song-item" onclick="playSong(${index})">
+                    ${song.name}
+                </div>
+            `).join('');
+        }
+
+        function playSong(index) {
+            currentSongIndex = index;
+            const song = songs[index];
+            audio.src = URL.createObjectURL(song);
+            document.getElementById('songTitle').textContent = song.name;
+            togglePlayer();
+            audio.play();
+            setupMediaSession(song);
+        }
+
+        function togglePlay() {
+            isPlaying ? audio.pause() : audio.play();
+            isPlaying = !isPlaying;
+        }
+
+        function skip(seconds) {
+            audio.currentTime += seconds;
+        }
+
+        function togglePlayer() {
+            document.querySelector('.playlist-container').style.display = 
+                document.querySelector('.playlist-container').style.display === 'none' ? 'block' : 'none';
+            document.querySelector('.player-container').classList.toggle('active');
+        }
+
+        // Progress bar
+        audio.addEventListener('timeupdate', () => {
+            const progress = (audio.currentTime / audio.duration) * 100;
+            document.querySelector('.progress').style.width = `${progress}%`;
+        });
+
+        // Touch gestures
         document.addEventListener('touchstart', e => {
-            touchStartX = e.changedTouches[0].screenX;
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
         });
 
         document.addEventListener('touchend', e => {
-            touchEndX = e.changedTouches[0].screenX;
-            handleSwipe();
-        });
+            const deltaX = e.changedTouches[0].clientX - touchStartX;
+            const deltaY = e.changedTouches[0].clientY - touchStartY;
 
-        window.addEventListener('deviceorientation', handleDeviceOrientation);
-        window.addEventListener('orientationchange', handleOrientationChange);
-
-        // Add these functions
-        function handleSwipe() {
-            if (Math.abs(touchEndX - touchStartX) < SWIPE_THRESHOLD) return;
-            if (touchEndX < touchStartX) changeSong(1);
-            else changeSong(-1);
-        }
-
-        function handleDeviceOrientation(e) {
-            const albumArt = document.querySelector('.album-art');
-            const beta = e.beta * 0.1;  // X-axis tilt
-            const gamma = e.gamma * 0.1; // Y-axis tilt
-            albumArt.style.transform = `rotateZ(${beta}deg) rotateX(${gamma}deg)`;
-        }
-
-        function handleOrientationChange() {
-            const playerContent = document.querySelector('.player-content');
-            if (window.orientation === 90 || window.orientation === -90) {
-                playerContent.classList.add('landscape');
-            } else {
-                playerContent.classList.remove('landscape');
+            if (Math.abs(deltaX) > 50 && Math.abs(deltaY) < 50) {
+                if (deltaX > 0) skip(-10);
+                else skip(10);
             }
-        }
-
-        // Service Worker for offline support
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').then(() => {
-                console.log('Service Worker registered');
-            });
-        }
-
-        // Background audio playback
-        if ('mediaSession' in navigator) {
-            navigator.mediaSession.setActionHandler('play', () => audio.play());
-            navigator.mediaSession.setActionHandler('pause', () => audio.pause());
-            navigator.mediaSession.setActionHandler('previoustrack', () => changeSong(-1));
-            navigator.mediaSession.setActionHandler('nexttrack', () => changeSong(1));
-        }
-
-        // Local storage for offline files
-        function savePlaylist() {
-            localStorage.setItem('playlist', JSON.stringify(songs));
-        }
-
-        function loadPlaylist() {
-            const saved = localStorage.getItem('playlist');
-            if (saved) songs = JSON.parse(saved);
-        }
-
-        // Update initPlaylist to use loaded data
-        function initPlaylist() {
-            loadPlaylist();
-            // ... rest of existing init code
-        }
-
-        // Update file input handler to save files
-        document.getElementById('file-input').addEventListener('change', function(e) {
-            // ... existing code ...
-            savePlaylist();
         });
 
-        // Add metadata for background playback
-        function updateMediaSession() {
+        // Device motion
+        window.addEventListener('devicemotion', e => {
+            if (Math.abs(e.acceleration.x) > 15 || Math.abs(e.acceleration.y) > 15) {
+                playSong(Math.floor(Math.random() * songs.length));
+            }
+        });
+
+        // Orientation detection
+        window.addEventListener('orientationchange', () => {
+            document.querySelector('.artwork').style.transform = 
+                `rotate(${window.orientation * 90}deg)`;
+        });
+
+        // Media Session API
+        function setupMediaSession(song) {
             if ('mediaSession' in navigator) {
                 navigator.mediaSession.metadata = new MediaMetadata({
-                    title: songs[currentSongIndex].title,
-                    artist: songs[currentSongIndex].artist,
-                    artwork: [{ src: songs[currentSongIndex].cover, sizes: '300x300' }]
+                    title: song.name,
+                    artist: 'Unknown Artist',
+                    artwork: [{ src: 'placeholder-artwork.png', sizes: '512x512' }]
                 });
+
+                navigator.mediaSession.setActionHandler('previoustrack', () => skip(-10));
+                navigator.mediaSession.setActionHandler('nexttrack', () => skip(10));
             }
         }
 
-        // Call this in loadSong()
-        function loadSong(index) {
-            // ... existing code ...
-            updateMediaSession();
+        // Service Worker for offline
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
         }
-    </script>
 
-    <!-- Service Worker file (sw.js) -->
-    <script>
-        // Create this as a separate sw.js file
-        const CACHE_NAME = 'taydot-v1';
-        const ASSETS = [
-            '/',
-            '/index.html',
-            '/styles.css',
-            '/app.js',
-            // Add other necessary assets
-        ];
-
-        self.addEventListener('install', (e) => {
-            e.waitUntil(
-                caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
-            );
+        // Background playback
+        audio.addEventListener('play', () => {
+            if ('wakeLock' in navigator) {
+                navigator.wakeLock.request('screen');
+            }
         });
 
-        self.addEventListener('fetch', (e) => {
-            e.respondWith(
-                caches.match(e.request).then((response) => response || fetch(e.request))
-            );
+        audio.addEventListener('pause', () => {
+            if ('wakeLock' in navigator) {
+                navigator.wakeLock.release();
+            }
         });
     </script>
 </body>
