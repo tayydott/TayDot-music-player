@@ -5,11 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#1a1a1a">
     <title>TayDot Player - Professional Music Experience</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-          integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
-          crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* CSS Custom Properties */
         :root {
             --primary-color: #ff6b6b;
             --secondary-color: #1a1a1a;
@@ -21,11 +18,10 @@
             --blur-intensity: 16px;
         }
 
-        /* Reset and Base Styles */
-        *, *::before, *::after {
-            box-sizing: border-box;
+        * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
         }
 
         html {
@@ -42,7 +38,6 @@
             overflow-x: hidden;
         }
 
-        /* Accessibility */
         .sr-only {
             position: absolute;
             width: 1px;
@@ -54,20 +49,12 @@
             border: 0;
         }
 
-        /* Layout */
         .container {
             max-width: 1600px;
             margin: 0 auto;
             padding: 2rem;
         }
 
-        .grid {
-            display: grid;
-            gap: 1.5rem;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        }
-
-        /* Player Components */
         .player-container {
             position: fixed;
             inset: 0;
@@ -77,9 +64,6 @@
             opacity: 0;
             visibility: hidden;
             transition: opacity var(--transition-duration) ease, visibility 0s linear var(--transition-duration);
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
         .player-container--active {
@@ -94,38 +78,8 @@
             padding: 2rem;
             width: min(95%, 600px);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            transform: translateY(20px);
-            transition: transform var(--transition-duration) ease;
         }
 
-        .player-container--active .player-surface {
-            transform: translateY(0);
-        }
-
-        /* Playlist Styles */
-        .playlist {
-            --item-padding: 1rem;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: var(--border-radius);
-            backdrop-filter: blur(8px);
-        }
-
-        .playlist-item {
-            padding: var(--item-padding);
-            border-radius: calc(var(--border-radius) / 2);
-            transition: background-color var(--transition-duration) ease;
-            cursor: pointer;
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }
-
-        .playlist-item[aria-selected="true"] {
-            background: rgba(255, 107, 107, 0.15);
-            position: relative;
-        }
-
-        /* Controls */
         .controls-group {
             display: flex;
             justify-content: center;
@@ -141,23 +95,8 @@
             border-radius: 50%;
             cursor: pointer;
             transition: all var(--transition-duration) ease;
-            position: relative;
             width: 3.5rem;
             height: 3.5rem;
-        }
-
-        .control-button::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: 50%;
-            background: currentColor;
-            opacity: 0;
-            transition: opacity var(--transition-duration) ease;
-        }
-
-        .control-button:hover::after {
-            opacity: 0.1;
         }
 
         .control-button--primary {
@@ -165,26 +104,6 @@
             box-shadow: 0 4px 16px rgba(255, 107, 107, 0.3);
         }
 
-        /* Progress Bar */
-        .progress-container {
-            height: var(--progress-height);
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: var(--progress-height);
-            margin: 2rem 0;
-            cursor: pointer;
-            position: relative;
-        }
-
-        .progress-bar {
-            height: 100%;
-            background: var(--primary-color);
-            border-radius: var(--progress-height);
-            width: 0%;
-            transition: width 0.1s linear;
-            position: relative;
-        }
-
-        /* Animations */
         @keyframes rotateArtwork {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
@@ -195,33 +114,9 @@
                 animation: rotateArtwork 20s linear infinite;
             }
         }
-
-        /* Adaptive Layout */
-        @media screen and (min-width: 768px) {
-            .player-surface {
-                padding: 3rem;
-                width: min(90%, 800px);
-            }
-            
-            .controls-group {
-                gap: 2rem;
-            }
-        }
-
-        @media (orientation: landscape) {
-            .player-surface {
-                flex-direction: row;
-                align-items: center;
-            }
-            
-            .album-art {
-                margin-right: 2rem;
-            }
-        }
     </style>
 </head>
 <body>
-    <!-- Playlist Interface -->
     <main class="container">
         <header class="header">
             <h1 class="brand">TayDot Player</h1>
@@ -236,7 +131,6 @@
         </section>
     </main>
 
-    <!-- Player Interface -->
     <div class="player-container" role="dialog" aria-label="Now playing">
         <div class="player-surface">
             <button class="control-button back-button" aria-label="Close player">
@@ -279,14 +173,12 @@
     </div>
 
     <script type="module">
-        // Audio Controller Module
         class AudioController {
             constructor() {
                 this.audio = new Audio();
                 this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 this.analyser = this.audioContext.createAnalyser();
                 this.initAudioNodes();
-                this.setupEventListeners();
             }
 
             initAudioNodes() {
@@ -296,50 +188,76 @@
                 this.analyser.fftSize = 256;
             }
 
-            // ... (remaining audio controller methods)
-        }
-
-        // UI Controller Module
-        class UIController {
-            constructor() {
-                this.dom = {
-                    // Cached DOM elements
-                };
-                this.initDOMReferences();
-                this.bindEvents();
+            async play() {
+                try {
+                    await this.audio.play();
+                    return true;
+                } catch (error) {
+                    console.error('Playback failed:', error);
+                    return false;
+                }
             }
 
-            // ... (UI interaction methods)
+            // Additional audio processing methods
         }
 
-        // Playlist Manager Module
+        class UIController {
+            constructor() {
+                this.domCache = {
+                    playerContainer: document.querySelector('.player-container'),
+                    playButton: document.querySelector('[data-action="play"]'),
+                    // Cache other elements
+                };
+                this.initEventListeners();
+            }
+
+            initEventListeners() {
+                // Add delegated event listeners
+                document.body.addEventListener('click', this.handleUIInteractions.bind(this));
+            }
+
+            handleUIInteractions(event) {
+                // Handle all UI interactions in a centralized way
+            }
+
+            // Additional UI management methods
+        }
+
         class PlaylistManager {
             constructor() {
                 this.tracks = [];
                 this.currentTrackIndex = 0;
                 this.shuffleMode = false;
-                this.repeatMode = 'none';
             }
 
-            // ... (playlist management methods)
+            addTracks(files) {
+                const newTracks = files.map(file => ({
+                    id: crypto.randomUUID(),
+                    title: file.name.replace(/\.[^.]+$/, ''),
+                    artist: 'Unknown Artist',
+                    src: URL.createObjectURL(file),
+                    file
+                }));
+                this.tracks = [...this.tracks, ...newTracks];
+            }
+
+            // Additional playlist management methods
         }
 
-        // Service Worker Manager
-        class SWManager {
+        class ServiceWorkerManager {
             static async register() {
                 if ('serviceWorker' in navigator) {
                     try {
-                        const reg = await navigator.serviceWorker.register('sw.js');
-                        console.log('ServiceWorker registration successful');
-                        return reg;
-                    } catch (err) {
-                        console.error('ServiceWorker registration failed:', err);
+                        const registration = await navigator.serviceWorker.register('/sw.js');
+                        console.log('ServiceWorker registered');
+                        return registration;
+                    } catch (error) {
+                        console.error('ServiceWorker registration failed:', error);
                     }
                 }
             }
         }
 
-        // App Initialization
         class TayDotPlayer {
             constructor() {
                 this.audioController = new AudioController();
@@ -349,15 +267,25 @@
             }
 
             async init() {
-                await SWManager.register();
+                await ServiceWorkerManager.register();
                 this.setupGlobalListeners();
-                // Additional initialization logic
+                // Initialize other components
             }
 
-            // ... (application logic methods)
+            setupGlobalListeners() {
+                window.addEventListener('beforeunload', this.cleanUp.bind(this));
+                window.addEventListener('online', this.handleOnlineStatus);
+                window.addEventListener('offline', this.handleOfflineStatus);
+            }
+
+            cleanUp() {
+                // Clean up object URLs and resources
+            }
+
+            // Additional application logic
         }
 
-        // Start Application
+        // Initialize application
         new TayDotPlayer();
     </script>
 </body>
