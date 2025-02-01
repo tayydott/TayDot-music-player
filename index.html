@@ -4,197 +4,68 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TayDot Player</title>
-    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        /* Previous styles remain the same */
-        /* Add orientation warning */
-        .orientation-warning {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.9);
-            color: #fff;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: 20px;
-            z-index: 2000;
-        }
-
-        @media (orientation: landscape) {
-            .orientation-warning {
-                display: flex;
-            }
-        }
-    </style>
+    <link rel="manifest" href="/manifest.json">
 </head>
 <body>
     <div class="orientation-warning">
-        <div>Please rotate your device to portrait mode for better experience</div>
+        Please rotate your device to portrait mode for better experience
     </div>
 
-    <!-- Previous container structure remains the same -->
+    <div class="container">
+        <div class="header">
+            <h1>TayDot Player</h1>
+        </div>
 
-    <script>
-        // Service Worker Registration
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js')
-                .then(registration => console.log('SW registered'))
-                .catch(err => console.log('SW registration failed'));
-        }
+        <div class="playlist-container">
+            <div class="file-input-container">
+                <input type="file" id="file-input" multiple accept="audio/*">
+                <label for="file-input" class="upload-btn">
+                    <i class="fas fa-plus"></i> Add Songs
+                </label>
+            </div>
 
-        // Initialize variables
-        let songs = [];
-        let currentSongIndex = 0;
-        let isPlaying = false;
-        let isShuffle = false;
-        let isRepeat = false;
-        let touchStartX = 0;
-        let touchStartY = 0;
-        const SHAKE_THRESHOLD = 15;
+            <div class="playlist">
+                <div class="playlist-title">Your Playlist</div>
+                <div id="playlist-items"></div>
+            </div>
+        </div>
 
-        // Audio element and DOM references remain the same
+        <div class="player-container">
+            <div class="back-btn" id="back-btn">
+                <i class="fas fa-arrow-left"></i>
+            </div>
+            <div class="player-content">
+                <div class="album-art">
+                    <img src="https://picsum.photos/300" alt="Album Art" id="cover">
+                </div>
+                <div class="song-info">
+                    <div class="song-title" id="title">Song Title</div>
+                    <div class="artist" id="artist">Artist Name</div>
+                </div>
+                <div class="progress-container" id="progress-container">
+                    <div class="progress" id="progress"></div>
+                </div>
+                <div class="time-display">
+                    <span id="current-time">0:00</span>
+                    <span id="duration">0:00</span>
+                </div>
+                <div class="controls">
+                    <button class="control-btn" id="shuffle"><i class="fas fa-random"></i></button>
+                    <button class="control-btn" id="prev"><i class="fas fa-step-backward"></i></button>
+                    <button class="control-btn play-pause" id="play"><i class="fas fa-play"></i></button>
+                    <button class="control-btn" id="next"><i class="fas fa-step-forward"></i></button>
+                    <button class="control-btn" id="repeat"><i class="fas fa-redo"></i></button>
+                </div>
+                <div class="volume-container">
+                    <button class="control-btn"><i class="fas fa-volume-up"></i></button>
+                    <input type="range" class="volume-slider" id="volume" min="0" max="1" step="0.1" value="1">
+                </div>
+            </div>
+        </div>
+    </div>
 
-        // Touch Gesture Handling
-        function handleTouchStart(e) {
-            touchStartX = e.touches[0].clientX;
-            touchStartY = e.touches[0].clientY;
-        }
-
-        function handleTouchEnd(e) {
-            const touchEndX = e.changedTouches[0].clientX;
-            const touchEndY = e.changedTouches[0].clientY;
-            const deltaX = touchEndX - touchStartX;
-            const deltaY = touchEndY - touchStartY;
-
-            // Horizontal swipe detection
-            if (Math.abs(deltaX) > 50 && Math.abs(deltaY) < 50) {
-                if (deltaX > 0) {
-                    changeSong(-1); // Swipe right
-                } else {
-                    changeSong(1); // Swipe left
-                }
-            }
-        }
-
-        // Device Motion Effects
-        function handleDeviceMotion(e) {
-            const acceleration = e.accelerationIncludingGravity;
-            const tiltX = acceleration.x * 2;
-            const tiltY = acceleration.y * 2;
-            
-            if (document.querySelector('.album-art')) {
-                document.querySelector('.album-art').style.transform = 
-                    `rotate3d(${tiltY}, ${-tiltX}, 0, 15deg)`;
-            }
-
-            // Shake detection
-            const totalAcceleration = Math.sqrt(
-                acceleration.x ** 2 + 
-                acceleration.y ** 2 + 
-                acceleration.z ** 2
-            );
-            
-            if (totalAcceleration > SHAKE_THRESHOLD) {
-                toggleShuffle();
-            }
-        }
-
-        // Orientation Change Handling
-        function handleOrientationChange() {
-            if (window.matchMedia("(orientation: portrait)").matches) {
-                document.body.classList.remove('landscape');
-            } else {
-                document.body.classList.add('landscape');
-            }
-        }
-
-        // Media Session API for background playback
-        function updateMediaSession() {
-            if ('mediaSession' in navigator) {
-                navigator.mediaSession.metadata = new MediaMetadata({
-                    title: songs[currentSongIndex]?.title,
-                    artist: songs[currentSongIndex]?.artist,
-                    artwork: [{ src: songs[currentSongIndex]?.cover }]
-                });
-
-                navigator.mediaSession.setActionHandler('play', () => audio.play());
-                navigator.mediaSession.setActionHandler('pause', () => audio.pause());
-                navigator.mediaSession.setActionHandler('previoustrack', () => changeSong(-1));
-                navigator.mediaSession.setActionHandler('nexttrack', () => changeSong(1));
-            }
-        }
-
-        // Offline File Handling
-        function storeFileForOffline(file) {
-            if ('indexedDB' in window) {
-                const request = indexedDB.open('musicPlayerDB', 1);
-                
-                request.onupgradeneeded = (event) => {
-                    const db = event.target.result;
-                    if (!db.objectStoreNames.contains('songs')) {
-                        db.createObjectStore('songs', { keyPath: 'name' });
-                    }
-                };
-
-                request.onsuccess = (event) => {
-                    const db = event.target.result;
-                    const transaction = db.transaction('songs', 'readwrite');
-                    const store = transaction.objectStore('songs');
-                    
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        store.put({
-                            name: file.name,
-                            data: e.target.result,
-                            lastModified: file.lastModified
-                        });
-                    };
-                    reader.readAsArrayBuffer(file);
-                };
-            }
-        }
-
-        // Modified File Input Handler with offline storage
-        document.getElementById('file-input').addEventListener('change', function(e) {
-            const files = Array.from(e.target.files);
-            files.forEach(storeFileForOffline);
-            
-            const newSongs = files.map((file, index) => ({
-                title: file.name.replace(/\.[^/.]+$/, ""),
-                artist: "Unknown Artist",
-                src: URL.createObjectURL(file),
-                file: file
-            }));
-            
-            songs = [...newSongs];
-            initPlaylist();
-            loadSong(currentSongIndex);
-        });
-
-        // Add event listeners
-        document.querySelector('.player-content').addEventListener('touchstart', handleTouchStart);
-        document.querySelector('.player-content').addEventListener('touchend', handleTouchEnd);
-        window.addEventListener('devicemotion', handleDeviceMotion);
-        window.addEventListener('orientationchange', handleOrientationChange);
-
-        // Update media session when song changes
-        audio.addEventListener('play', () => {
-            updateMediaSession();
-            // Request wake lock
-            if ('wakeLock' in navigator) {
-                navigator.wakeLock.request('screen');
-            }
-        });
-
-        // Initialize orientation handling
-        handleOrientationChange();
-
-        // Previous remaining JavaScript code remains the same
-    </script>
+    <script src="app.js"></script>
 </body>
 </html>
