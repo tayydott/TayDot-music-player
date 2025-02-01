@@ -6,66 +6,34 @@
     <title>TayDot Player</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="manifest" href="/manifest.json">
 </head>
 <body>
-    <div class="orientation-warning">
-        Please rotate your device to portrait mode for better experience
-    </div>
-
     <div class="container">
         <div class="header">
             <h1>TayDot Player</h1>
         </div>
-
-        <div class="playlist-container">
-            <div class="file-input-container">
-                <input type="file" id="file-input" multiple accept="audio/*">
-                <label for="file-input" class="upload-btn">
-                    <i class="fas fa-plus"></i> Add Songs
-                </label>
-            </div>
-
-            <div class="playlist">
-                <div class="playlist-title">Your Playlist</div>
-                <div id="playlist-items"></div>
-            </div>
+        <div class="playlist">
+            <div id="playlist-items"></div>
         </div>
+    </div>
 
-        <div class="player-container">
-            <div class="back-btn" id="back-btn">
-                <i class="fas fa-arrow-left"></i>
+    <div class="player-container" id="player-container">
+        <div class="back-btn" id="back-btn">
+            <i class="fas fa-arrow-left"></i>
+        </div>
+        <div class="player-content">
+            <div class="album-art">
+                <img src="https://picsum.photos/200" alt="Album Art" id="cover">
             </div>
-            <div class="player-content">
-                <div class="album-art">
-                    <img src="https://picsum.photos/300" alt="Album Art" id="cover">
-                </div>
-                <div class="song-info">
-                    <div class="song-title" id="title">Song Title</div>
-                    <div class="artist" id="artist">Artist Name</div>
-                </div>
-                <div class="progress-container" id="progress-container">
-                    <div class="progress" id="progress"></div>
-                </div>
-                <div class="time-display">
-                    <span id="current-time">0:00</span>
-                    <span id="duration">0:00</span>
-                </div>
-                <div class="controls">
-                    <button class="control-btn" id="shuffle"><i class="fas fa-random"></i></button>
-                    <button class="control-btn" id="prev"><i class="fas fa-step-backward"></i></button>
-                    <button class="control-btn play-pause" id="play"><i class="fas fa-play"></i></button>
-                    <button class="control-btn" id="next"><i class="fas fa-step-forward"></i></button>
-                    <button class="control-btn" id="repeat"><i class="fas fa-redo"></i></button>
-                </div>
-                <div class="volume-container">
-                    <button class="control-btn"><i class="fas fa-volume-up"></i></button>
-                    <input type="range" class="volume-slider" id="volume" min="0" max="1" step="0.1" value="1">
-                </div>
+            <div class="controls">
+                <button id="prev"><i class="fas fa-step-backward"></i></button>
+                <button id="play"><i class="fas fa-play"></i></button>
+                <button id="next"><i class="fas fa-step-forward"></i></button>
             </div>
         </div>
     </div>
 
+    <script src="https://unpkg.com/swiped-events"></script>
     <script src="app.js"></script>
 </body>
 </html>
