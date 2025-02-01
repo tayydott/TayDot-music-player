@@ -1,276 +1,199 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#1a1a1a">
-    <title>TayDot Player</title>
+    <!-- Existing head content remains same -->
     <style>
-        :root {
-            --primary: #ff4757;
-            --secondary: #2f3542;
-            --text: #f1f2f6;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Arial', sans-serif;
-        }
-
-        body {
-            background: var(--secondary);
-            color: var(--text);
-            overflow-x: hidden;
-        }
-
-        .container {
-            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .playlist-container {
-            padding: 20px;
-            min-height: 100vh;
-        }
-
+        /* Add these new styles to existing CSS */
         .player-container {
+            backdrop-filter: blur(10px);
+        }
+
+        .swipe-indicator {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: var(--secondary);
-            transform: translateY(100%);
-            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            display: none;
-            flex-direction: column;
-            padding: 20px;
-        }
-
-        .player-container.active {
-            transform: translateY(0);
-            display: flex;
-        }
-
-        .song-item {
-            padding: 15px;
-            margin: 10px 0;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            cursor: pointer;
-            transition: transform 0.3s, background 0.3s;
-        }
-
-        .song-item:active {
-            transform: scale(0.98);
-        }
-
-        .controls {
-            margin-top: auto;
+            bottom: 30px;
+            width: 100%;
             text-align: center;
-        }
-
-        .progress-container {
-            height: 5px;
-            background: rgba(255, 255, 255, 0.1);
-            margin: 20px 0;
-            border-radius: 5px;
-        }
-
-        .progress {
-            height: 100%;
-            background: var(--primary);
-            width: 0%;
-            transition: width 0.1s linear;
-        }
-
-        button {
-            background: var(--primary);
-            border: none;
-            padding: 15px;
-            border-radius: 50%;
-            margin: 0 10px;
-            cursor: pointer;
-            transition: transform 0.3s;
-        }
-
-        button:active {
-            transform: scale(0.9);
-        }
-
-        .back-btn {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            font-size: 1.5em;
-            padding: 15px;
-            z-index: 100;
-        }
-
-        .artwork {
-            width: 80vw;
-            height: 80vw;
-            max-width: 300px;
-            max-height: 300px;
-            margin: 20px auto;
-            border-radius: 15px;
-            background: #333;
-            overflow: hidden;
-            animation: float 3s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
+            font-size: 12px;
+            opacity: 0.7;
         }
 
         @media (orientation: landscape) {
-            .player-container {
-                padding: 40px;
+            .player-content {
+                flex-direction: row;
+                align-items: center;
+                max-width: 800px;
             }
-            .artwork {
-                width: 50vh;
-                height: 50vh;
+            .album-art {
+                width: 40vh;
+                height: 40vh;
+                margin-right: 30px;
             }
+        }
+
+        .shake-detected {
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(10px); }
+            75% { transform: translateX(-10px); }
+        }
+
+        .back-btn {
+            font-size: 30px;
+            padding: 15px;
+            background: rgba(255,107,107,0.2);
+            border-radius: 50%;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="playlist-container">
-            <h1>TayDot Player</h1>
-            <input type="file" id="fileInput" webkitdirectory directory multiple hidden>
-            <button onclick="document.getElementById('fileInput').click()">Load Music</button>
-            <div id="playlist"></div>
-        </div>
-        <div class="player-container">
-            <button class="back-btn" onclick="togglePlayer()">←</button>
-            <div class="artwork"></div>
-            <h2 id="songTitle"></h2>
-            <div class="progress-container">
-                <div class="progress"></div>
-            </div>
-            <div class="controls">
-                <button onclick="skip(-10)">↻</button>
-                <button onclick="togglePlay()">⏯</button>
-                <button onclick="skip(10)">↺</button>
-            </div>
-        </div>
-    </div>
+    <!-- Existing body content remains same -->
+    <div class="swipe-indicator">Swipe left/right to change tracks</div>
 
     <script>
-        let currentSongIndex = 0;
-        let songs = [];
-        const audio = new Audio();
-        let isPlaying = false;
+        // Add these new features to existing JavaScript
         let touchStartX = 0;
         let touchStartY = 0;
+        let isSwiping = false;
 
-        // File handling
-        document.getElementById('fileInput').addEventListener('change', function(e) {
-            songs = Array.from(e.target.files).filter(file => file.type.startsWith('audio/'));
-            renderPlaylist();
-        });
-
-        function renderPlaylist() {
-            const playlist = document.getElementById('playlist');
-            playlist.innerHTML = songs.map((song, index) => `
-                <div class="song-item" onclick="playSong(${index})">
-                    ${song.name}
-                </div>
-            `).join('');
-        }
-
-        function playSong(index) {
-            currentSongIndex = index;
-            const song = songs[index];
-            audio.src = URL.createObjectURL(song);
-            document.getElementById('songTitle').textContent = song.name;
-            togglePlayer();
-            audio.play();
-            setupMediaSession(song);
-        }
-
-        function togglePlay() {
-            isPlaying ? audio.pause() : audio.play();
-            isPlaying = !isPlaying;
-        }
-
-        function skip(seconds) {
-            audio.currentTime += seconds;
-        }
-
-        function togglePlayer() {
-            document.querySelector('.playlist-container').style.display = 
-                document.querySelector('.playlist-container').style.display === 'none' ? 'block' : 'none';
-            document.querySelector('.player-container').classList.toggle('active');
-        }
-
-        // Progress bar
-        audio.addEventListener('timeupdate', () => {
-            const progress = (audio.currentTime / audio.duration) * 100;
-            document.querySelector('.progress').style.width = `${progress}%`;
-        });
-
-        // Touch gestures
+        // Touch gesture handling
         document.addEventListener('touchstart', e => {
             touchStartX = e.touches[0].clientX;
             touchStartY = e.touches[0].clientY;
         });
 
-        document.addEventListener('touchend', e => {
-            const deltaX = e.changedTouches[0].clientX - touchStartX;
-            const deltaY = e.changedTouches[0].clientY - touchStartY;
-
+        document.addEventListener('touchmove', e => {
+            if (!isPlaying) return;
+            const deltaX = e.touches[0].clientX - touchStartX;
+            const deltaY = e.touches[0].clientY - touchStartY;
+            
             if (Math.abs(deltaX) > 50 && Math.abs(deltaY) < 50) {
-                if (deltaX > 0) skip(-10);
-                else skip(10);
+                isSwiping = true;
+                if (deltaX > 0) changeSong(-1);
+                else changeSong(1);
             }
         });
 
-        // Device motion
+        document.addEventListener('touchend', () => {
+            isSwiping = false;
+        });
+
+        // Device motion (shake detection)
+        let lastShake = 0;
         window.addEventListener('devicemotion', e => {
-            if (Math.abs(e.acceleration.x) > 15 || Math.abs(e.acceleration.y) > 15) {
-                playSong(Math.floor(Math.random() * songs.length));
+            if (!isPlaying) return;
+            const acceleration = e.acceleration;
+            const threshold = 15;
+            
+            if (Math.abs(acceleration.x) > threshold || 
+                Math.abs(acceleration.y) > threshold) {
+                if (Date.now() - lastShake > 1000) {
+                    document.querySelector('.album-art').classList.add('shake-detected');
+                    setTimeout(() => {
+                        document.querySelector('.album-art').classList.remove('shake-detected');
+                    }, 500);
+                    toggleShuffle();
+                    changeSong(1);
+                    lastShake = Date.now();
+                }
             }
         });
 
-        // Orientation detection
+        // Orientation change handling
         window.addEventListener('orientationchange', () => {
-            document.querySelector('.artwork').style.transform = 
-                `rotate(${window.orientation * 90}deg)`;
+            const artwork = document.querySelector('.album-art');
+            artwork.style.transform = `rotate(${window.orientation * 15}deg)`;
+            setTimeout(() => {
+                artwork.style.transform = 'none';
+            }, 500);
         });
 
-        // Media Session API
-        function setupMediaSession(song) {
+        // Service Worker for offline support
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(() => console.log('Service Worker registered'))
+                .catch(err => console.log('Service Worker failed', err));
+        }
+
+        // Media Session API for background playback
+        function updateMediaSession() {
             if ('mediaSession' in navigator) {
                 navigator.mediaSession.metadata = new MediaMetadata({
-                    title: song.name,
-                    artist: 'Unknown Artist',
-                    artwork: [{ src: 'placeholder-artwork.png', sizes: '512x512' }]
+                    title: songs[currentSongIndex].title,
+                    artist: songs[currentSongIndex].artist,
+                    artwork: [
+                        { src: songs[currentSongIndex].cover, sizes: '300x300' }
+                    ]
                 });
 
-                navigator.mediaSession.setActionHandler('previoustrack', () => skip(-10));
-                navigator.mediaSession.setActionHandler('nexttrack', () => skip(10));
+                navigator.mediaSession.setActionHandler('play', () => audio.play());
+                navigator.mediaSession.setActionHandler('pause', () => audio.pause());
+                navigator.mediaSession.setActionHandler('previoustrack', () => changeSong(-1));
+                navigator.mediaSession.setActionHandler('nexttrack', () => changeSong(1));
             }
         }
 
-        // Service Worker for offline
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
+        // Update loadSong function to include
+        function loadSong(index) {
+            // Existing code...
+            updateMediaSession();
+            setupWakeLock();
         }
 
-        // Background playback
-        audio.addEventListener('play', () => {
+        // Screen wake lock
+        async function setupWakeLock() {
             if ('wakeLock' in navigator) {
-                navigator.wakeLock.request('screen');
+                try {
+                    const wakeLock = await navigator.wakeLock.request('screen');
+                    audio.addEventListener('pause', () => wakeLock.release());
+                } catch (err) {
+                    console.log('Wake Lock failed:', err);
+                }
+            }
+        }
+
+        // Enhanced shuffle function
+        function toggleShuffle() {
+            isShuffle = !isShuffle;
+            shuffleBtn.classList.toggle('active', isShuffle);
+            if (isShuffle) {
+                songs = songs.sort(() => Math.random() - 0.5);
+                currentSongIndex = 0;
+                initPlaylist();
+            } else {
+                songs = [...initialSongs];
+                initPlaylist();
+            }
+        }
+
+        // Add to existing initPlaylist function
+        function initPlaylist() {
+            // Existing code...
+            document.querySelectorAll('.playlist-item').forEach(item => {
+                item.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    const index = parseInt(item.dataset.index);
+                    songs.splice(index, 1);
+                    initPlaylist();
+                });
+            });
+        }
+
+        // Add these to existing event listeners
+        audio.addEventListener('play', () => {
+            // Existing code...
+            if (!document.querySelector('.player-container').classList.contains('active')) {
+                document.querySelector('.player-container').classList.add('active');
             }
         });
 
-        audio.addEventListener('pause', () => {
-            if ('wakeLock' in navigator) {
-                navigator.wakeLock.release();
+        // Handle file input for directory upload
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            // Existing code...
+            if (songs.length > 0 && !document.querySelector('.player-container').classList.contains('active')) {
+                document.querySelector('.player-container').classList.add('active');
             }
         });
     </script>
