@@ -1,20 +1,206 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Existing head content remains same -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#1a1a1a">
+    <title>TayDot Player</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* Add these new styles to existing CSS */
+        :root {
+            --primary: #ff6b6b;
+            --secondary: #1a1a1a;
+            --text: #ffffff;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, var(--secondary), #2a2a2a) fixed;
+            color: var(--text);
+            overflow-x: hidden;
+            font-family: 'Arial', sans-serif;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            animation: slideDown 0.8s ease;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            color: var(--primary);
+            text-shadow: 0 0 15px rgba(255,107,107,0.5);
+        }
+
+        .playlist-container {
+            display: block;
+            opacity: 1;
+            transition: transform 0.5s ease;
+        }
+
         .player-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            backdrop-filter: blur(10px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            z-index: 1000;
+        }
+
+        .player-container.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .player-content {
+            background: rgba(26,26,26,0.95);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            animation: popIn 0.4s ease forwards;
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 30px;
+            color: var(--text);
+            cursor: pointer;
+            padding: 15px;
+            background: rgba(255,107,107,0.2);
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            transform: scale(1.1);
+            color: var(--primary);
+        }
+
+        .album-art {
+            width: 250px;
+            height: 250px;
+            border-radius: 15px;
+            margin: 0 auto 20px;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            transition: transform 0.3s ease;
+        }
+
+        .album-art img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .song-info {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .song-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: var(--primary);
+        }
+
+        .progress-container {
+            background: #333;
+            height: 5px;
+            border-radius: 5px;
+            margin: 25px 0;
+            cursor: pointer;
+        }
+
+        .progress {
+            background: var(--primary);
+            height: 100%;
+            border-radius: 5px;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 25px;
+            margin-bottom: 20px;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            color: var(--text);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 15px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .playlist {
+            margin-top: 30px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 20px;
             backdrop-filter: blur(10px);
         }
 
-        .swipe-indicator {
-            position: fixed;
-            bottom: 30px;
-            width: 100%;
-            text-align: center;
-            font-size: 12px;
-            opacity: 0.7;
+        .playlist-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 10px;
+        }
+
+        .playlist-item.active {
+            background: rgba(255,107,107,0.2);
+            border-left: 4px solid var(--primary);
+        }
+
+        .upload-btn {
+            background: var(--primary);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
 
         @media (orientation: landscape) {
@@ -39,93 +225,236 @@
             25% { transform: translateX(10px); }
             75% { transform: translateX(-10px); }
         }
-
-        .back-btn {
-            font-size: 30px;
-            padding: 15px;
-            background: rgba(255,107,107,0.2);
-            border-radius: 50%;
-        }
     </style>
 </head>
 <body>
-    <!-- Existing body content remains same -->
-    <div class="swipe-indicator">Swipe left/right to change tracks</div>
+    <div class="container">
+        <div class="header">
+            <h1>TayDot Player</h1>
+        </div>
+
+        <div class="playlist-container">
+            <div class="file-input-container">
+                <input type="file" id="file-input" multiple accept="audio/*" hidden>
+                <label for="file-input" class="upload-btn">
+                    <i class="fas fa-plus"></i> Add Songs
+                </label>
+            </div>
+
+            <div class="playlist">
+                <div id="playlist-items"></div>
+            </div>
+        </div>
+
+        <div class="player-container">
+            <div class="back-btn" id="back-btn">
+                <i class="fas fa-arrow-left"></i>
+            </div>
+            <div class="player-content">
+                <div class="album-art">
+                    <img src="https://picsum.photos/300" alt="Album Art" id="cover">
+                </div>
+                <div class="song-info">
+                    <div class="song-title" id="title">Song Title</div>
+                    <div class="artist" id="artist">Artist Name</div>
+                </div>
+                <div class="progress-container" id="progress-container">
+                    <div class="progress" id="progress"></div>
+                </div>
+                <div class="controls">
+                    <button class="control-btn" id="shuffle"><i class="fas fa-random"></i></button>
+                    <button class="control-btn" id="prev"><i class="fas fa-step-backward"></i></button>
+                    <button class="control-btn play-pause" id="play"><i class="fas fa-play"></i></button>
+                    <button class="control-btn" id="next"><i class="fas fa-step-forward"></i></button>
+                </div>
+                <div class="volume-container">
+                    <input type="range" class="volume-slider" id="volume" min="0" max="1" step="0.1" value="1">
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
-        // Add these new features to existing JavaScript
+        let currentSongIndex = 0;
+        let songs = [];
+        let isPlaying = false;
+        let isShuffle = false;
         let touchStartX = 0;
-        let touchStartY = 0;
-        let isSwiping = false;
 
-        // Touch gesture handling
-        document.addEventListener('touchstart', e => {
-            touchStartX = e.touches[0].clientX;
-            touchStartY = e.touches[0].clientY;
-        });
+        const audio = new Audio();
+        const elements = {
+            play: document.getElementById('play'),
+            playlistItems: document.getElementById('playlist-items'),
+            title: document.getElementById('title'),
+            artist: document.getElementById('artist'),
+            cover: document.getElementById('cover'),
+            progress: document.getElementById('progress'),
+            volume: document.getElementById('volume')
+        };
 
-        document.addEventListener('touchmove', e => {
-            if (!isPlaying) return;
-            const deltaX = e.touches[0].clientX - touchStartX;
-            const deltaY = e.touches[0].clientY - touchStartY;
-            
-            if (Math.abs(deltaX) > 50 && Math.abs(deltaY) < 50) {
-                isSwiping = true;
-                if (deltaX > 0) changeSong(-1);
-                else changeSong(1);
-            }
-        });
+        // Initialize
+        document.addEventListener('DOMContentLoaded', init);
 
-        document.addEventListener('touchend', () => {
-            isSwiping = false;
-        });
-
-        // Device motion (shake detection)
-        let lastShake = 0;
-        window.addEventListener('devicemotion', e => {
-            if (!isPlaying) return;
-            const acceleration = e.acceleration;
-            const threshold = 15;
-            
-            if (Math.abs(acceleration.x) > threshold || 
-                Math.abs(acceleration.y) > threshold) {
-                if (Date.now() - lastShake > 1000) {
-                    document.querySelector('.album-art').classList.add('shake-detected');
-                    setTimeout(() => {
-                        document.querySelector('.album-art').classList.remove('shake-detected');
-                    }, 500);
-                    toggleShuffle();
-                    changeSong(1);
-                    lastShake = Date.now();
-                }
-            }
-        });
-
-        // Orientation change handling
-        window.addEventListener('orientationchange', () => {
-            const artwork = document.querySelector('.album-art');
-            artwork.style.transform = `rotate(${window.orientation * 15}deg)`;
-            setTimeout(() => {
-                artwork.style.transform = 'none';
-            }, 500);
-        });
-
-        // Service Worker for offline support
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js')
-                .then(() => console.log('Service Worker registered'))
-                .catch(err => console.log('Service Worker failed', err));
+        function init() {
+            setupEventListeners();
+            registerServiceWorker();
         }
 
-        // Media Session API for background playback
-        function updateMediaSession() {
+        function setupEventListeners() {
+            document.getElementById('file-input').addEventListener('change', handleFileUpload);
+            document.getElementById('back-btn').addEventListener('click', togglePlayer);
+            elements.play.addEventListener('click', togglePlay);
+            document.getElementById('prev').addEventListener('click', () => changeSong(-1));
+            document.getElementById('next').addEventListener('click', () => changeSong(1));
+            document.getElementById('shuffle').addEventListener('click', toggleShuffle);
+            elements.volume.addEventListener('input', updateVolume);
+            document.getElementById('progress-container').addEventListener('click', setProgress);
+            elements.playlistItems.addEventListener('click', handlePlaylistClick);
+            
+            audio.addEventListener('timeupdate', updateProgress);
+            audio.addEventListener('ended', handleSongEnd);
+            audio.addEventListener('play', () => updatePlayState(true));
+            audio.addEventListener('pause', () => updatePlayState(false));
+            
+            document.addEventListener('touchstart', handleTouchStart);
+            document.addEventListener('touchend', handleTouchEnd);
+            window.addEventListener('devicemotion', handleDeviceMotion);
+            window.addEventListener('orientationchange', handleOrientationChange);
+        }
+
+        function handleFileUpload(e) {
+            const files = Array.from(e.target.files);
+            const newSongs = files.map(file => ({
+                title: file.name.replace(/\.[^/.]+$/, ""),
+                artist: "Unknown Artist",
+                src: URL.createObjectURL(file),
+                file: file
+            }));
+            
+            songs = [...songs, ...newSongs];
+            renderPlaylist();
+            if (songs.length > 0) togglePlayer();
+        }
+
+        function renderPlaylist() {
+            elements.playlistItems.innerHTML = songs.map((song, index) => `
+                <div class="playlist-item ${index === currentSongIndex ? 'active' : ''}" data-index="${index}">
+                    <div>
+                        <div>${song.title}</div>
+                        <div class="artist">${song.artist}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function togglePlayer() {
+            document.querySelector('.player-container').classList.toggle('active');
+        }
+
+        function loadSong(index) {
+            currentSongIndex = index;
+            const song = songs[index];
+            
+            audio.src = song.src;
+            elements.title.textContent = song.title;
+            elements.artist.textContent = song.artist;
+            elements.cover.src = song.cover || 'https://picsum.photos/300';
+            
+            renderPlaylist();
+            updateMediaSession(song);
+            setupWakeLock();
+        }
+
+        function togglePlay() {
+            isPlaying ? audio.pause() : audio.play();
+        }
+
+        function updatePlayState(playing) {
+            isPlaying = playing;
+            elements.play.innerHTML = playing ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
+            document.querySelector('.album-art').style.animation = playing ? 'pulse 2s infinite' : '';
+        }
+
+        function changeSong(direction) {
+            currentSongIndex = (currentSongIndex + direction + songs.length) % songs.length;
+            loadSong(currentSongIndex);
+            if (isPlaying) audio.play();
+        }
+
+        function toggleShuffle() {
+            isShuffle = !isShuffle;
+            if (isShuffle) {
+                songs = songs.sort(() => Math.random() - 0.5);
+                currentSongIndex = 0;
+            }
+            renderPlaylist();
+        }
+
+        function updateProgress() {
+            const progress = (audio.currentTime / audio.duration) * 100;
+            elements.progress.style.width = `${progress}%`;
+        }
+
+        function setProgress(e) {
+            const rect = e.target.getBoundingClientRect();
+            const pos = (e.clientX - rect.left) / rect.width;
+            audio.currentTime = pos * audio.duration;
+        }
+
+        function updateVolume(e) {
+            audio.volume = e.target.value;
+        }
+
+        function handleSongEnd() {
+            changeSong(1);
+        }
+
+        function handlePlaylistClick(e) {
+            const item = e.target.closest('.playlist-item');
+            if (item) {
+                currentSongIndex = parseInt(item.dataset.index);
+                loadSong(currentSongIndex);
+                audio.play();
+                togglePlayer();
+            }
+        }
+
+        // Touch Gestures
+        function handleTouchStart(e) {
+            touchStartX = e.touches[0].clientX;
+        }
+
+        function handleTouchEnd(e) {
+            const deltaX = e.changedTouches[0].clientX - touchStartX;
+            if (Math.abs(deltaX) > 50) {
+                deltaX > 0 ? changeSong(-1) : changeSong(1);
+            }
+        }
+
+        // Device Motion
+        function handleDeviceMotion(e) {
+            const acc = e.acceleration;
+            if (Math.abs(acc.x) > 15 || Math.abs(acc.y) > 15) {
+                document.querySelector('.album-art').classList.add('shake-detected');
+                setTimeout(() => {
+                    document.querySelector('.album-art').classList.remove('shake-detected');
+                }, 500);
+                toggleShuffle();
+            }
+        }
+
+        // Orientation Change
+        function handleOrientationChange() {
+            document.querySelector('.player-content').classList.add('landscape');
+        }
+
+        // Media Session API
+        function updateMediaSession(song) {
             if ('mediaSession' in navigator) {
                 navigator.mediaSession.metadata = new MediaMetadata({
-                    title: songs[currentSongIndex].title,
-                    artist: songs[currentSongIndex].artist,
-                    artwork: [
-                        { src: songs[currentSongIndex].cover, sizes: '300x300' }
-                    ]
+                    title: song.title,
+                    artist: song.artist,
+                    artwork: [{ src: song.cover, sizes: '300x300' }]
                 });
 
                 navigator.mediaSession.setActionHandler('play', () => audio.play());
@@ -135,67 +464,26 @@
             }
         }
 
-        // Update loadSong function to include
-        function loadSong(index) {
-            // Existing code...
-            updateMediaSession();
-            setupWakeLock();
-        }
-
-        // Screen wake lock
+        // Wake Lock
         async function setupWakeLock() {
             if ('wakeLock' in navigator) {
                 try {
                     const wakeLock = await navigator.wakeLock.request('screen');
                     audio.addEventListener('pause', () => wakeLock.release());
                 } catch (err) {
-                    console.log('Wake Lock failed:', err);
+                    console.error('Wake Lock failed:', err);
                 }
             }
         }
 
-        // Enhanced shuffle function
-        function toggleShuffle() {
-            isShuffle = !isShuffle;
-            shuffleBtn.classList.toggle('active', isShuffle);
-            if (isShuffle) {
-                songs = songs.sort(() => Math.random() - 0.5);
-                currentSongIndex = 0;
-                initPlaylist();
-            } else {
-                songs = [...initialSongs];
-                initPlaylist();
+        // Service Worker
+        function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('sw.js')
+                    .then(() => console.log('Service Worker registered'))
+                    .catch(err => console.error('Service Worker error:', err));
             }
         }
-
-        // Add to existing initPlaylist function
-        function initPlaylist() {
-            // Existing code...
-            document.querySelectorAll('.playlist-item').forEach(item => {
-                item.addEventListener('contextmenu', (e) => {
-                    e.preventDefault();
-                    const index = parseInt(item.dataset.index);
-                    songs.splice(index, 1);
-                    initPlaylist();
-                });
-            });
-        }
-
-        // Add these to existing event listeners
-        audio.addEventListener('play', () => {
-            // Existing code...
-            if (!document.querySelector('.player-container').classList.contains('active')) {
-                document.querySelector('.player-container').classList.add('active');
-            }
-        });
-
-        // Handle file input for directory upload
-        document.getElementById('file-input').addEventListener('change', function(e) {
-            // Existing code...
-            if (songs.length > 0 && !document.querySelector('.player-container').classList.contains('active')) {
-                document.querySelector('.player-container').classList.add('active');
-            }
-        });
     </script>
 </body>
 </html>
