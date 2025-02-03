@@ -18,27 +18,31 @@
             background: #1a1a1a;
             color: #fff;
             overflow: hidden;
+            touch-action: pan-y;
         }
 
         .container {
-            max-width: 100vw;
+            width: 100vw;
             height: 100vh;
         }
 
         .header {
             text-align: center;
             padding: 20px;
+            position: relative;
+            z-index: 1;
         }
 
         .header h1 {
             font-size: 2em;
             color: #ff6b6b;
+            text-shadow: 0 0 10px rgba(255,107,107,0.3);
         }
 
         .playlist-container {
-            padding: 20px;
-            overflow-y: auto;
             height: calc(100vh - 80px);
+            overflow-y: auto;
+            padding: 0 20px 20px;
         }
 
         .player-container {
@@ -61,24 +65,26 @@
             position: absolute;
             top: 25px;
             left: 25px;
-            font-size: 36px;
+            font-size: 32px;
             color: #fff;
-            cursor: pointer;
-            z-index: 1001;
             background: rgba(0,0,0,0.7);
-            padding: 15px;
+            padding: 12px;
             border-radius: 50%;
+            z-index: 1001;
+            border: none;
+            cursor: pointer;
         }
 
         .album-art {
             width: 80vw;
             height: 80vw;
-            max-width: 400px;
-            max-height: 400px;
-            margin: 10vh auto 0;
+            max-width: 300px;
+            max-height: 300px;
+            margin: 15vh auto 0;
             border-radius: 15px;
             overflow: hidden;
             box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            transition: transform 0.3s ease;
         }
 
         .album-art img {
@@ -90,27 +96,28 @@
         .song-info {
             text-align: center;
             margin: 20px 0;
+            padding: 0 20px;
         }
 
         .song-title {
-            font-size: 24px;
+            font-size: 1.5em;
             margin-bottom: 5px;
             color: #ff6b6b;
         }
 
         .artist {
             color: #888;
-            font-size: 16px;
+            font-size: 1em;
         }
 
         .progress-container {
             width: 90%;
             margin: 0 auto;
-            height: 5px;
+            height: 4px;
             background: #333;
-            border-radius: 5px;
+            border-radius: 2px;
             position: absolute;
-            bottom: 150px;
+            bottom: 140px;
             left: 5%;
         }
 
@@ -126,8 +133,9 @@
             display: flex;
             justify-content: space-between;
             position: absolute;
-            bottom: 170px;
+            bottom: 160px;
             left: 5%;
+            font-size: 0.9em;
         }
 
         .controls {
@@ -143,9 +151,10 @@
             background: none;
             border: none;
             color: #fff;
-            font-size: 24px;
+            font-size: 1.5em;
             padding: 15px;
             cursor: pointer;
+            transition: transform 0.2s ease;
         }
 
         .volume-container {
@@ -165,8 +174,8 @@
 
         .volume-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 30px;
-            height: 30px;
+            width: 25px;
+            height: 25px;
             background: #ff6b6b;
             border-radius: 50%;
         }
@@ -174,10 +183,16 @@
         .playlist-item {
             display: flex;
             align-items: center;
-            padding: 10px;
+            padding: 12px;
             margin-bottom: 10px;
             background: rgba(255,255,255,0.05);
             border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .playlist-item:hover {
+            background: rgba(255,107,107,0.1);
         }
 
         .playlist-item img {
@@ -196,6 +211,49 @@
             cursor: pointer;
             display: block;
             margin: 20px auto;
+            transition: transform 0.2s ease;
+        }
+
+        .error-message {
+            color: #ff4444;
+            text-align: center;
+            padding: 15px;
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            border-radius: 8px;
+            z-index: 1002;
+        }
+
+        @media (orientation: landscape) {
+            .player-container {
+                flex-direction: row;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .album-art {
+                margin: 0;
+                width: 40vh;
+                height: 40vh;
+                max-width: 300px;
+                max-height: 300px;
+            }
+            
+            .song-info {
+                margin-left: 30px;
+                text-align: left;
+            }
+            
+            .progress-container,
+            .time-display,
+            .volume-container {
+                left: calc(40vh + 50px);
+                width: calc(60% - 40vh);
+            }
         }
     </style>
 </head>
@@ -242,18 +300,12 @@
                 <button class="control-btn" id="repeat"><i class="fas fa-redo"></i></button>
             </div>
         </div>
+        <div class="error-message" id="error-message"></div>
     </div>
 
     <script>
-        const initialSongs = [
-            {
-                title: "Summer Vibes",
-                artist: "Chill Artist",
-                cover: "https://picsum.photos/300",
-                src: "path-to-your-audio-file-1.mp3"
-            }
-        ];
-
+        // Player Core
+        const initialSongs = [];
         let songs = [...initialSongs];
         let currentSongIndex = 0;
         let isPlaying = false;
@@ -276,82 +328,146 @@
             playlistItems: document.getElementById('playlist-items'),
             fileInput: document.getElementById('file-input'),
             backBtn: document.getElementById('back-btn'),
-            playerContainer: document.querySelector('.player-container')
+            playerContainer: document.querySelector('.player-container'),
+            errorMessage: document.getElementById('error-message')
         };
 
-        // Touch Handling
-        document.addEventListener('touchstart', e => {
-            if (e.target === elements.volume || e.target.closest('.volume-container')) {
-                isVolumeInteraction = true;
-                touchStartX = e.touches[0].clientX;
-                return;
-            }
-            touchStartX = e.touches[0].clientX;
-        });
-
-        document.addEventListener('touchend', e => {
-            if (isVolumeInteraction) {
-                isVolumeInteraction = false;
-                return;
-            }
-            
-            const touchEndX = e.changedTouches[0].clientX;
-            const deltaX = touchEndX - touchStartX;
-
-            if (Math.abs(deltaX) > SWIPE_THRESHOLD) {
-                deltaX > 0 ? changeSong(-1) : changeSong(1);
-            }
-        });
-
-        // Volume Control
-        elements.volume.addEventListener('touchmove', e => {
-            if (!isVolumeInteraction) return;
-            const touchX = e.touches[0].clientX;
-            const rect = elements.volume.getBoundingClientRect();
-            const percentage = (touchX - rect.left) / rect.width;
-            const newVolume = Math.min(Math.max(percentage, 0), 1);
-            audio.volume = newVolume;
-            elements.volume.value = newVolume;
-        });
-
-        // Player Functions
-        function initPlaylist() {
-            elements.playlistItems.innerHTML = songs.map((song, index) => `
-                <div class="playlist-item" data-index="${index}" onclick="selectSong(${index})">
-                    <img src="${song.cover || 'https://picsum.photos/50'}">
-                    <div>
-                        <div>${song.title}</div>
-                        <div class="artist">${song.artist}</div>
-                    </div>
-                </div>
-            `).join('');
+        // Error Handling
+        function showError(message) {
+            elements.errorMessage.textContent = message;
+            elements.errorMessage.style.display = 'block';
+            setTimeout(() => {
+                elements.errorMessage.style.display = 'none';
+            }, 3000);
         }
 
+        // Touch Handling
+        function handleTouchStart(e) {
+            try {
+                if (e.target.closest('.volume-container')) {
+                    isVolumeInteraction = true;
+                    touchStartX = e.touches[0].clientX;
+                    return;
+                }
+                touchStartX = e.touches[0].clientX;
+            } catch (error) {
+                showError('Touch interaction error: ' + error.message);
+            }
+        }
+
+        function handleTouchEnd(e) {
+            try {
+                if (isVolumeInteraction) {
+                    isVolumeInteraction = false;
+                    return;
+                }
+                
+                const touchEndX = e.changedTouches[0].clientX;
+                const deltaX = touchEndX - touchStartX;
+
+                if (Math.abs(deltaX) > SWIPE_THRESHOLD) {
+                    deltaX > 0 ? changeSong(-1) : changeSong(1);
+                }
+            } catch (error) {
+                showError('Swipe gesture error: ' + error.message);
+            }
+        }
+
+        // Volume Control
+        function handleVolumeTouch(e) {
+            if (!isVolumeInteraction) return;
+            const rect = elements.volume.getBoundingClientRect();
+            const touchX = e.touches[0].clientX;
+            const percentage = (touchX - rect.left) / rect.width;
+            const newVolume = Math.min(Math.max(percentage, 0), 1);
+            
+            audio.volume = newVolume;
+            elements.volume.value = newVolume;
+        }
+
+        // Playlist Management
+        function initPlaylist() {
+            try {
+                elements.playlistItems.innerHTML = songs.map((song, index) => `
+                    <div class="playlist-item" data-index="${index}" onclick="selectSong(${index})">
+                        <img src="${song.cover || 'https://picsum.photos/50'}">
+                        <div>
+                            <div>${song.title}</div>
+                            <div class="artist">${song.artist}</div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                showError('Playlist initialization failed: ' + error.message);
+            }
+        }
+
+        // Song Management
         function selectSong(index) {
-            currentSongIndex = index;
-            loadSong(index);
-            elements.playerContainer.classList.add('active');
-            audio.play();
+            try {
+                if (index < 0 || index >= songs.length) return;
+                
+                currentSongIndex = index;
+                loadSong(index);
+                elements.playerContainer.classList.add('active');
+                audio.play().catch(error => {
+                    showError('Playback error: ' + error.message);
+                });
+            } catch (error) {
+                showError('Song selection error: ' + error.message);
+            }
         }
 
         function loadSong(index) {
-            const song = songs[index];
-            elements.title.textContent = song.title;
-            elements.artist.textContent = song.artist;
-            elements.cover.src = song.cover;
-            audio.src = song.src;
+            try {
+                const song = songs[index];
+                elements.title.textContent = song.title;
+                elements.artist.textContent = song.artist;
+                elements.cover.src = song.cover || 'https://picsum.photos/300';
+                audio.src = song.src;
+                
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.metadata = new MediaMetadata({
+                        title: song.title,
+                        artist: song.artist,
+                        artwork: [{ src: song.cover, sizes: '512x512' }]
+                    });
+                }
+            } catch (error) {
+                showError('Song loading error: ' + error.message);
+            }
         }
 
+        // Player Controls
         function togglePlay() {
-            isPlaying ? audio.pause() : audio.play();
+            try {
+                isPlaying ? audio.pause() : audio.play();
+            } catch (error) {
+                showError('Playback control error: ' + error.message);
+            }
         }
 
+        function changeSong(direction) {
+            try {
+                currentSongIndex = (currentSongIndex + direction + songs.length) % songs.length;
+                loadSong(currentSongIndex);
+                if (isPlaying) audio.play();
+            } catch (error) {
+                showError('Track change error: ' + error.message);
+            }
+        }
+
+        // Progress Updates
         function updateProgress(e) {
-            const { duration, currentTime } = e.srcElement;
-            const progressPercent = (currentTime / duration) * 100;
-            elements.progress.style.width = `${progressPercent}%`;
-            elements.currentTime.textContent = formatTime(currentTime);
-            elements.duration.textContent = formatTime(duration);
+            try {
+                const { duration, currentTime } = e.target;
+                const progressPercent = (currentTime / duration) * 100 || 0;
+                elements.progress.style.width = `${progressPercent}%`;
+                elements.currentTime.textContent = formatTime(currentTime);
+                elements.duration.textContent = formatTime(duration);
+            } catch (error) {
+                showError('Progress update error: ' + error.message);
+            }
         }
 
         function formatTime(seconds) {
@@ -360,34 +476,84 @@
             return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
         }
 
-        function changeSong(direction) {
-            currentSongIndex = (currentSongIndex + direction + songs.length) % songs.length;
-            loadSong(currentSongIndex);
-            if (isPlaying) audio.play();
+        // File Handling
+        function handleFileUpload(e) {
+            try {
+                const files = Array.from(e.target.files);
+                const newSongs = files.map(file => {
+                    if (!file.type.startsWith('audio/')) {
+                        showError(`Unsupported file type: ${file.name}`);
+                        return null;
+                    }
+                    
+                    return {
+                        title: file.name.replace(/\.[^.]+$/, ''),
+                        artist: "Unknown Artist",
+                        src: URL.createObjectURL(file),
+                        cover: 'https://picsum.photos/300'
+                    };
+                }).filter(Boolean);
+
+                songs = [...songs, ...newSongs];
+                initPlaylist();
+            } catch (error) {
+                showError('File upload error: ' + error.message);
+            }
         }
 
         // Event Listeners
-        elements.play.addEventListener('click', togglePlay);
-        elements.prev.addEventListener('click', () => changeSong(-1));
-        elements.next.addEventListener('click', () => changeSong(1));
-        elements.backBtn.addEventListener('click', () => elements.playerContainer.classList.remove('active'));
-        elements.fileInput.addEventListener('change', handleFileUpload);
+        function setupEventListeners() {
+            // Player Controls
+            elements.play.addEventListener('click', togglePlay);
+            elements.prev.addEventListener('click', () => changeSong(-1));
+            elements.next.addEventListener('click', () => changeSong(1));
+            elements.backBtn.addEventListener('click', () => elements.playerContainer.classList.remove('active'));
+            
+            // Audio Events
+            audio.addEventListener('timeupdate', updateProgress);
+            audio.addEventListener('ended', () => isRepeat ? audio.play() : changeSong(1));
+            audio.addEventListener('play', () => {
+                isPlaying = true;
+                elements.play.innerHTML = '<i class="fas fa-pause"></i>';
+            });
+            audio.addEventListener('pause', () => {
+                isPlaying = false;
+                elements.play.innerHTML = '<i class="fas fa-play"></i>';
+            });
+            audio.addEventListener('error', (e) => {
+                showError('Audio error: ' + e.target.error.message);
+            });
 
-        audio.addEventListener('timeupdate', updateProgress);
-        audio.addEventListener('ended', () => isRepeat ? audio.play() : changeSong(1));
-        audio.addEventListener('play', () => {
-            isPlaying = true;
-            elements.play.innerHTML = '<i class="fas fa-pause"></i>';
-        });
-        audio.addEventListener('pause', () => {
-            isPlaying = false;
-            elements.play.innerHTML = '<i class="fas fa-play"></i>';
-        });
+            // Touch Events
+            document.addEventListener('touchstart', handleTouchStart);
+            document.addEventListener('touchend', handleTouchEnd);
+            elements.volume.addEventListener('touchmove', handleVolumeTouch);
 
-        // Initialization
+            // File Input
+            elements.fileInput.addEventListener('change', handleFileUpload);
+
+            // Media Session
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.setActionHandler('play', () => audio.play());
+                navigator.mediaSession.setActionHandler('pause', () => audio.pause());
+                navigator.mediaSession.setActionHandler('previoustrack', () => changeSong(-1));
+                navigator.mediaSession.setActionHandler('nexttrack', () => changeSong(1));
+            }
+        }
+
+        // Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(registration => console.log('SW registered'))
+                    .catch(err => showError('Service Worker failed: ' + err.message));
+            });
+        }
+
+        // Initialize
+        setupEventListeners();
         initPlaylist();
-        loadSong(0);
-        audio.volume = elements.volume.value;
+        if (songs.length > 0) loadSong(0);
     </script>
 </body>
 </html>
